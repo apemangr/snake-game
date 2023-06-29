@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <raylib.h>
+#include <math.h>
+#include <stdlib.h>
+#include <time.h>
 
 #define SCREEN_WIDTH    800
 #define SCREEN_HEIGHT   800 
@@ -9,75 +12,138 @@
 #define SNAKE_WIDTH SNAKE_HEIGHT 
 #define SNAKE_SPAWN_X 250
 #define SNAKE_SPAWN_Y 250
+#define RAND_X_LIMIT 800
+#define RAND_Y_LIMIT 800
 
-
-
-float floatModulo(float dividend, float divisor) {
-    int intDividend = (int)dividend;
-    int intDivisor = (int)divisor;
-    
-    int intResult = intDividend % intDivisor;
-    float floatResult = (float)intResult;
-    
-    return floatResult;
+int randomGenerator(int limit){
+    return (rand() % ((limit-25) / 50 + 1)) * 50 + 25;
 }
-
-
 
 int main()
 {
-
+    srand(time(NULL)); // Set the seed of the random generator    
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Snake Game in C");
+    int points = 0;
+    char coords[50]; 
+    char pointsString[50];
+    Vector2 circleCenter = {randomGenerator(RAND_X_LIMIT),
+                            randomGenerator(RAND_Y_LIMIT)};
 
-    Vector2 circleCenter = {250, 250};
     Rectangle snake = {SNAKE_SPAWN_X, SNAKE_SPAWN_Y, SNAKE_WIDTH, SNAKE_HEIGHT}; 
     char lastPosition = 'R'; // U->Up, D->Down, R->Right, L->Left 
-    char previousPosition = '0';
+    char previousPosition = 'R';
+    float speed = 5.0f;
     SetTargetFPS(60);
-    char Coords[100];
+    
     while (!WindowShouldClose())
     {
 
-        printf("\nSnake X = %f\nSnake Y = %f\nLast = %c Previous = %c",snake.x, snake.y, lastPosition, previousPosition);
-
+        //printf("\nSnake X = %f\nSnake Y = %f\nLast = %c Previous = %c",snake.x, snake.y, lastPosition, previousPosition);
+        
         switch(lastPosition){
             case 'U':
-                if (floatModulo(snake.x, 50) == 0)
-                    snake.y -= 5.0f;
+                if ((int)snake.x % 50 == 0){
+                    previousPosition = lastPosition;
+                    snake.y -= speed;
+                }
                 else{
 
                     switch (previousPosition) {
                         case 'R':
-                            snake.x += 5.0f;
+                            snake.x += speed;
                             break;
 
                         case 'L':
-                            snake.x -= 5.0f;
+                            snake.x -= speed;
                             break;
 
                         case 'D':
-                            snake.y += 5.0f; 
+                            snake.y += speed; 
                             break;
                         default:
-                            break;
+                            printf("\nError lastPosition\n");
                     }
 
                 }
                 break; 
 
             case 'D':
-                previousPosition = 'D';
-                snake.y += 5.0f;
+                if ((int)snake.x % 50 == 0){
+                    previousPosition = lastPosition;
+                    snake.y += speed;
+                }
+                else{
+
+                    switch (previousPosition) {
+                        case 'R':
+                            snake.x += speed;
+                            break;
+
+                        case 'L':
+                            snake.x -= speed;
+                            break;
+
+                        case 'U':
+                            snake.y -= speed; 
+                            break;
+                        default:
+                            printf("\nError lastPosition\n");
+                    }
+
+                }
                 break;
 
             case 'L':
-                previousPosition = 'L';
-                snake.x -= 5.0f;
+                if ((int)snake.y% 50 == 0){
+                    previousPosition = lastPosition;
+                    snake.x -= speed;
+                }
+                else{
+
+                    switch (previousPosition) {
+                        case 'R':
+                            snake.x += speed;
+                            break;
+
+                        case 'D':
+                            snake.y += speed;
+                            break;
+
+                        case 'U':
+                            snake.y -= speed; 
+                            break;
+                        default:
+                            printf("\nError lastPosition\n");
+                    }
+
+                }
                 break;
 
+
             case 'R':
-                previousPosition = 'R';
-                snake.x += 5.0f;
+                if ((int)snake.y% 50 == 0){
+                    previousPosition = lastPosition;
+                    snake.x += speed;
+                }
+                else{
+
+                    switch (previousPosition) {
+                        case 'L':
+                            snake.x -= speed;
+                            break;
+
+                        case 'D':
+                            snake.y += speed;
+                            break;
+
+                        case 'U':
+                            snake.y -= speed; 
+                            break;
+                        default:
+                            printf("\nError lastPosition\n");
+                    }
+
+                }
                 break;
 
             case '0':
@@ -90,28 +156,18 @@ int main()
         }
         
         if (IsKeyDown(KEY_UP)){
-            if(previousPosition != lastPosition){
-                previousPosition = lastPosition;
-                lastPosition = 'U'; 
-            }
+            lastPosition = 'U'; 
         }
 
         if (IsKeyDown(KEY_DOWN)){
-
-            if(previousPosition != lastPosition)
-                previousPosition = lastPosition;
             lastPosition = 'D'; 
         }
-        if (IsKeyDown(KEY_LEFT)){
 
-            if(previousPosition != lastPosition)
-                previousPosition = lastPosition;
+        if (IsKeyDown(KEY_LEFT)){
             lastPosition = 'L'; 
         }
-        if (IsKeyDown(KEY_RIGHT)){
 
-            if(previousPosition != lastPosition)
-                previousPosition = lastPosition;
+        if (IsKeyDown(KEY_RIGHT)){
             lastPosition = 'R'; 
         }
 
@@ -123,20 +179,30 @@ int main()
 
         for (int i = 0; i < COLUMNS; i++) {
             for (int j = 0; j < ROWS; j++) {
-                DrawRectangleLines(i * SNAKE_WIDTH, j * SNAKE_HEIGHT, SNAKE_WIDTH, SNAKE_HEIGHT, BLACK); 
+                DrawRectangleLines( i * SNAKE_WIDTH,
+                                    j * SNAKE_HEIGHT,
+                                    SNAKE_WIDTH,
+                                    SNAKE_HEIGHT,
+                                    GRAY); 
             }
         }
 
 
         DrawRectangleRec(snake, GREEN);
 
-
-        DrawCircle(250,250,25, RED);
-
+        sprintf(pointsString, "Points: %d", points);
+        DrawText(pointsString, 10, 0, 25, BLACK);
+        DrawCircle(circleCenter.x,circleCenter.y,25, RED);
+        DrawFPS(200,200);
         if(CheckCollisionCircleRec(circleCenter, 25, snake)){
             DrawText("Collided", 5,5,25, BLACK);
+            circleCenter.x = randomGenerator(RAND_X_LIMIT);
+            circleCenter.y = randomGenerator(RAND_Y_LIMIT);
+            points++; 
         }
 
+        sprintf(coords, "X: %f, Y: %f", snake.x, snake.y);
+        DrawText(coords, 100, 30,25, BLACK);
         EndDrawing();
 
     }
