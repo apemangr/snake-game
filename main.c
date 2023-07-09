@@ -1,213 +1,122 @@
-#include <stdio.h>
-#include <raylib.h>
-#include <math.h>
 #include <stdlib.h>
-#include <time.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include "raylib.h"
 
-#define SCREEN_WIDTH    800
-#define SCREEN_HEIGHT   800 
-#define COLUMNS SCREEN_WIDTH/50
-#define ROWS SCREEN_HEIGHT/50
-#define SNAKE_HEIGHT 50 
-#define SNAKE_WIDTH SNAKE_HEIGHT 
-#define SNAKE_SPAWN_X 250
-#define SNAKE_SPAWN_Y 250
-#define RAND_X_LIMIT 800
-#define RAND_Y_LIMIT 800
+#define GRID_SIZE 20 
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 800
 
-int randomGenerator(int limit){
-    return (rand() % ((limit-25) / 50 + 1)) * 50 + 25;
-}
+typedef struct {
+    int x;
+    int y;
+} Position;
 
-int main()
+typedef struct {
+    Position position;
+    Color color;
+} SnakeSegment;
+
+int main(void)
 {
-    srand(time(NULL)); // Set the seed of the random generator    
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Snake Game in C");
-    int points = 0;
-    char coords[50]; 
-    char pointsString[50];
-    Vector2 circleCenter = {randomGenerator(RAND_X_LIMIT),
-                            randomGenerator(RAND_Y_LIMIT)};
+    // Inicializar la ventana
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Snake Game");
 
-    Rectangle snake = {SNAKE_SPAWN_X, SNAKE_SPAWN_Y, SNAKE_WIDTH, SNAKE_HEIGHT}; 
-    char lastPosition = 'R'; // U->Up, D->Down, R->Right, L->Left 
-    char previousPosition = 'R';
-    float speed = 5.0f;
-    SetTargetFPS(60);
-    
+    // Inicializar la serpiente
+    SnakeSegment snake[100];
+    int snakeLength = 1;
+    snake[0].position.x = SCREEN_WIDTH / (2 * GRID_SIZE);
+    snake[0].position.y = SCREEN_HEIGHT / (2 * GRID_SIZE);
+    snake[0].color = GREEN;
+
+    // Inicializar la dirección de movimiento
+    int directionX = 1;
+    int directionY = 0;
+
+    // Inicializar la posición de la comida
+    Position food;
+    food.x = GetRandomValue(0, SCREEN_WIDTH / GRID_SIZE - 1);
+    food.y = GetRandomValue(0, SCREEN_HEIGHT / GRID_SIZE - 1);
+
+    SetTargetFPS(25);
+
     while (!WindowShouldClose())
     {
-
-        //printf("\nSnake X = %f\nSnake Y = %f\nLast = %c Previous = %c",snake.x, snake.y, lastPosition, previousPosition);
-        
-        switch(lastPosition){
-            case 'U':
-                if ((int)snake.x % 50 == 0){
-                    previousPosition = lastPosition;
-                    snake.y -= speed;
-                }
-                else{
-
-                    switch (previousPosition) {
-                        case 'R':
-                            snake.x += speed;
-                            break;
-
-                        case 'L':
-                            snake.x -= speed;
-                            break;
-
-                        case 'D':
-                            snake.y += speed; 
-                            break;
-                        default:
-                            printf("\nError lastPosition\n");
-                    }
-
-                }
-                break; 
-
-            case 'D':
-                if ((int)snake.x % 50 == 0){
-                    previousPosition = lastPosition;
-                    snake.y += speed;
-                }
-                else{
-
-                    switch (previousPosition) {
-                        case 'R':
-                            snake.x += speed;
-                            break;
-
-                        case 'L':
-                            snake.x -= speed;
-                            break;
-
-                        case 'U':
-                            snake.y -= speed; 
-                            break;
-                        default:
-                            printf("\nError lastPosition\n");
-                    }
-
-                }
-                break;
-
-            case 'L':
-                if ((int)snake.y% 50 == 0){
-                    previousPosition = lastPosition;
-                    snake.x -= speed;
-                }
-                else{
-
-                    switch (previousPosition) {
-                        case 'R':
-                            snake.x += speed;
-                            break;
-
-                        case 'D':
-                            snake.y += speed;
-                            break;
-
-                        case 'U':
-                            snake.y -= speed; 
-                            break;
-                        default:
-                            printf("\nError lastPosition\n");
-                    }
-
-                }
-                break;
-
-
-            case 'R':
-                if ((int)snake.y% 50 == 0){
-                    previousPosition = lastPosition;
-                    snake.x += speed;
-                }
-                else{
-
-                    switch (previousPosition) {
-                        case 'L':
-                            snake.x -= speed;
-                            break;
-
-                        case 'D':
-                            snake.y += speed;
-                            break;
-
-                        case 'U':
-                            snake.y -= speed; 
-                            break;
-                        default:
-                            printf("\nError lastPosition\n");
-                    }
-
-                }
-                break;
-
-            case '0':
-                snake.x = 0;
-                snake.y = 0;
-                break;
-
-            default:
-                printf("Error\n");
+        // Actualizar la dirección de la serpiente
+        if (IsKeyPressed(KEY_RIGHT) && directionX != -1)
+        {
+            directionX = 1;
+            directionY = 0;
         }
-        
-        if (IsKeyDown(KEY_UP)){
-            lastPosition = 'U'; 
+        else if (IsKeyPressed(KEY_LEFT) && directionX != 1)
+        {
+            directionX = -1;
+            directionY = 0;
+        }
+        else if (IsKeyPressed(KEY_UP) && directionY != 1)
+        {
+            directionX = 0;
+            directionY = -1;
+        }
+        else if (IsKeyPressed(KEY_DOWN) && directionY != -1)
+        {
+            directionX = 0;
+            directionY = 1;
         }
 
-        if (IsKeyDown(KEY_DOWN)){
-            lastPosition = 'D'; 
+        // Mover la serpiente
+        for (int i = snakeLength - 1; i > 0; i--)
+        {
+            snake[i] = snake[i - 1];
+        }
+        snake[0].position.x += directionX;
+        snake[0].position.y += directionY;
+
+        // Comprobar colisión con los bordes de la pantalla
+        if (snake[0].position.x < 0 || snake[0].position.x >= SCREEN_WIDTH / GRID_SIZE ||
+            snake[0].position.y < 0 || snake[0].position.y >= SCREEN_HEIGHT / GRID_SIZE)
+        {
+            break;  // Juego terminado
         }
 
-        if (IsKeyDown(KEY_LEFT)){
-            lastPosition = 'L'; 
+        // Comprobar colisión con la comida
+        if (snake[0].position.x == food.x && snake[0].position.y == food.y)
+        {
+            // Aumentar la longitud de la serpiente
+            snakeLength++;
+
+            // Generar una nueva posición para la comida
+            food.x = GetRandomValue(0, SCREEN_WIDTH / GRID_SIZE - 1);
+            food.y = GetRandomValue(0, SCREEN_HEIGHT / GRID_SIZE - 1);
         }
 
-        if (IsKeyDown(KEY_RIGHT)){
-            lastPosition = 'R'; 
-        }
-
-
-        BeginDrawing();
-
-        ClearBackground(RAYWHITE);
-
-
-        for (int i = 0; i < COLUMNS; i++) {
-            for (int j = 0; j < ROWS; j++) {
-                DrawRectangleLines( i * SNAKE_WIDTH,
-                                    j * SNAKE_HEIGHT,
-                                    SNAKE_WIDTH,
-                                    SNAKE_HEIGHT,
-                                    GRAY); 
+        // Comprobar colisión de la serpiente consigo misma
+        for (int i = 1; i < snakeLength; i++)
+        {
+            if (snake[0].position.x == snake[i].position.x && snake[0].position.y == snake[i].position.y)
+            {
+                break;  // Juego terminado
             }
         }
 
-
-        DrawRectangleRec(snake, GREEN);
-
-        sprintf(pointsString, "Points: %d", points);
-        DrawText(pointsString, 10, 0, 25, BLACK);
-        DrawCircle(circleCenter.x,circleCenter.y,25, RED);
+        // Renderizar la escena
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
         DrawFPS(200,200);
-        if(CheckCollisionCircleRec(circleCenter, 25, snake)){
-            DrawText("Collided", 5,5,25, BLACK);
-            circleCenter.x = randomGenerator(RAND_X_LIMIT);
-            circleCenter.y = randomGenerator(RAND_Y_LIMIT);
-            points++; 
+        // Dibujar la serpiente
+        for (int i = 0; i < snakeLength; i++)
+        {
+            DrawRectangle(snake[i].position.x * GRID_SIZE, snake[i].position.y * GRID_SIZE,
+                          GRID_SIZE, GRID_SIZE, snake[i].color);
         }
 
-        sprintf(coords, "X: %f, Y: %f", snake.x, snake.y);
-        DrawText(coords, 100, 30,25, BLACK);
-        EndDrawing();
+        // Dibujar la comida
+        DrawRectangle(food.x * GRID_SIZE, food.y * GRID_SIZE, GRID_SIZE, GRID_SIZE, RED);
 
+        EndDrawing();
     }
 
+    // Cerrar la ventana y finalizar el juego
     CloseWindow();
-
     return 0;
 }
